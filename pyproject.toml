@@ -3,10 +3,10 @@ name = "eager_cache"
 version = "0.1.0"
 description = "Eager caching made easy"
 authors = [
-
+"Lior Pollak"
 ]
 maintainers = [
-
+"Lior Pollak"
 ]
 readme = "README.md"
 
@@ -22,6 +22,7 @@ aiofiles = "^0.7.0"
 httptools = "^0.3.0"
 async-exit-stack = "^1.0.1"
 async-generator = "^1.10"
+aiocache = {extras = ["redis"], version = "^0.11.1"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.0"

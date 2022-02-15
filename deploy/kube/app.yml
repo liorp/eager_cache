@@ -1,0 +1,76 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: eager-cache
+  name: eager-cache-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: eager-cache-app
+  template:
+    metadata:
+      labels:
+        app: eager-cache-app
+    spec:
+      containers:
+      - name: app
+        image: eager_cache:latest
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: api-port
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        env:
+        - name: EAGER_CACHE_HOST
+          value: "0.0.0.0"
+        - name: EAGER_CACHE_WORKERS_COUNT
+          value: "10"
+        - name: EAGER_CACHE_REDIS_HOST
+          value: "eager-cache-redis-service"
+        resources:
+          limits:
+            memory: "300Mi"
+            cpu: "200m"
+        ports:
+        - containerPort: 8000
+          name: api-port
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: eager-cache
+  name: eager-cache-app-service
+spec:
+  selector:
+    app: eager-cache-app
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: api-port
+    name: api-port
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: eager-cache-app
+  namespace: eager-cache
+  labels:
+    name: eager-cache-app
+spec:
+  rules:
+  - host: eager-cache.local
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: eager-cache-app-service
+            port:
+              name: api-port
+
+---

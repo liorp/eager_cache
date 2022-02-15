@@ -1,0 +1,46 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: eager-cache
+  name: eager-cache-redis
+spec:
+  selector:
+    matchLabels:
+      app: eager-cache-redis
+  template:
+    metadata:
+      labels:
+        app: eager-cache-redis
+    spec:
+      containers:
+      - name: redis
+        image: bitnami/redis:6.2.5
+        startupProbe:
+          exec:
+            command: ["redis-cli", "ping"]
+          failureThreshold: 30
+          periodSeconds: 5
+        env:
+        - name: ALLOW_EMPTY_PASSWORD
+          value: "yes"
+        resources:
+          limits:
+            memory: "300Mi"
+            cpu: "200m"
+        ports:
+        - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: eager-cache
+  name: "eager-cache-redis-service"
+spec:
+  selector:
+    app: eager-cache-redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+
+---

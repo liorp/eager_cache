@@ -4,51 +4,28 @@ Magical eager caching server.
 
 Powered by fastapi.
 
-Start a project with:
+# What is eager caching?
 
-```bash
-docker-compose -f deploy/docker-compose.yml --project-directory . up
-```
+Say you have some data that you need to serve to your users.
+You decide to use a cache, but then you realise you need also to invalidate the cache after some time.
+Another consideration you tak into account is serving your users with fresh information every time they want to access the data, using the cache.
 
-## Pre-commit
+Introducing eager-cache:
+In its base, it's a FastAPI server that uses supplied fetchers in order to serve users with information they need.
+It's actually a key-value store, storing cache in redis for each request (path+query) the value retrieved from the appropriate fetcher.
 
-To install pre-commit simply run inside the shell:
+The magic is in the caching mechanism.
+It uses redis in order to store the cached responses, and sets ttl for every cache record.
+There is a microservice that subscribes to keyspace events from the redis deployment and refetches the expired value using the fetcher.
 
-```bash
-pre-commit install
-```
+# `DataItem` structure
 
-## Kubernetes
+In addition to storing the data, `DataItem` does two important things:
+First, it stores the time the data itself was _fetched_ (this is `last_retrieved`).
+Second, it stores the time the data itself was _changed_ (this is `last_modified`).
+This way, you can always know when was the data fetched, but also when was it changed (the comparison is done using [deepdiff][https://pypi.org/project/deepdiff/])
 
-To run your app in kubernetes
-just run:
+# TODO
 
-```bash
-kubectl apply -f deploy/kube
-```
-
-It will create needed components.
-
-If you haven't pushed to docker registry yet, you can build image locally.
-
-```bash
-docker-compose -f deploy/docker-compose.yml --project-directory . build
-docker save --output eager_cache.tar eager_cache:latest
-```
-
-## Running tests
-
-If you want to run it in docker, simply run:
-
-```bash
-docker-compose -f deploy/docker-compose.yml --project-directory . run --rm api pytest -vv .
-docker-compose -f deploy/docker-compose.yml --project-directory . down
-```
-
-For running tests on your local machine.
-
-2. Run the pytest.
-
-```bash
-pytest -vv .
-```
+-   Write docs
+-   Write tests

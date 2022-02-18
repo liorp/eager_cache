@@ -23,6 +23,7 @@ httptools = "^0.3.0"
 async-exit-stack = "^1.0.1"
 async-generator = "^1.10"
 aiocache = {extras = ["redis"], version = "^0.11.1"}
+deepdiff = "^5.7.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.0"

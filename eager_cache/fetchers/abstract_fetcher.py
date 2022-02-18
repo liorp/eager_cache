@@ -35,7 +35,7 @@ class DataItem(BaseModel):
     and the time when the data itself was last modified.
     """
 
-    data_item: Any  # The data itself
+    data: Any  # The data itself
 
     last_retrieved: datetime  # This is the retrieve time from data source.
     # Do not confuse with `last_modified`, which is when the data itself was modified.
@@ -88,17 +88,21 @@ class AbstractFetcher(ABC):
                 if DeepDiff(previous_data, fetched_data) == {}:
                     last_modified = previous_cached_result["last_modified"]
 
-            # Finally, set the data and the shadow in the cache
-            cached_result = await cls.cache.set(
-                cache_key,
-                DataItem(
-                    last_modified=last_modified,
-                    last_retrieved=datetime.now(),
-                    data=fetched_data,
-                ),
+            data_item = DataItem(
+                last_modified=last_modified,
+                last_retrieved=datetime.now(),
+                data=fetched_data,
             )
-            await cls.cache.set(SHADOW_KEY_PREFIX, "")
-            return cached_result
+            json_data_item = jsonable_encoder(data_item)
+
+            # Finally, set the data and the shadow in the cache
+            await cls.cache.set(
+                cache_key,
+                json_data_item,
+            )
+            await cls.cache.set(shadow_cache_key, "")
+
+            return json_data_item
 
         return await cls.cache.get(cache_key)
 

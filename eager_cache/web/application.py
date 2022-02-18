@@ -1,3 +1,4 @@
+from importlib import metadata
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -20,7 +21,7 @@ def get_app() -> FastAPI:
     app = FastAPI(
         title="eager_cache",
         description="Eager caching made easy",
-        version="1.0.0",
+        version=metadata.version("eager_cache"),
         docs_url=None,
         redoc_url=None,
         openapi_url="/api/openapi.json",

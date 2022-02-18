@@ -20,12 +20,6 @@ black:
   script:
   - black --check .
 
-flake8:
-  extends:
-  - .test-template
-  script:
-  - flake8 --count .
-
 mypy:
   extends:
   - .test-template

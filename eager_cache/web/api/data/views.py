@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 
-from eager_cache.fetchers.abstract_fetcher import AbstractFetcher
+from eager_cache.fetchers import *
 
 router = APIRouter()
 fetchers = {klass.data_type: klass for klass in AbstractFetcher.__subclasses__()}
@@ -22,4 +23,5 @@ async def api_data(data_type: str, request: Request) -> Response:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Fetcher for data type {data_type} not found",
         )
-    return fetchers[data_type].fetch(**request.query_params)
+    result = await fetchers[data_type].fetch(**request.query_params)
+    return JSONResponse(result)

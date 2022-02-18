@@ -27,7 +27,6 @@ deepdiff = "^5.7.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.0"
-flake8 = "^3.9.2"
 mypy = "^0.910"
 isort = "^5.9.3"
 yesqa = "^1.2.3"
@@ -41,6 +40,7 @@ nest-asyncio = "^1.5.1"
 pytest-env = "^0.6.2"
 fakeredis = "^1.6.1"
 requests = "^2.26.0"
+types-redis = "^4.1.16"
 
 
 [tool.isort]

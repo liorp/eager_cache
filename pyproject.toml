@@ -16,7 +16,7 @@ fastapi = "^0.68.0"
 uvicorn = "^0.15.0"
 pydantic = {version = "^1.8.2", extras = ["dotenv"]}
 yarl = "^1.6.3"
-ujson = "^4.2.0"
+ujson = "^5.1.0"
 aioredis = {version = "^2.0.0", extras = ["hiredis"]}
 aiofiles = "^0.7.0"
 httptools = "^0.3.0"

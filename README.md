@@ -43,3 +43,4 @@ This way, you can always know when was the data fetched, but also when was it ch
 -   Write docs
 -   Write tests
 -   Add logging
+-   Re add mypy, flake8

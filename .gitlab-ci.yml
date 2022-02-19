@@ -25,3 +25,14 @@ pytest:
   - .test-template
   script:
   - pytest -vv --cov="eager_cache" .
+# flake8:
+#   extends:
+#   - .test-template
+#   script:
+#   - flake8 --count .
+
+# mypy:
+#   extends:
+#     - .test-template
+#   script:
+#     - mypy .

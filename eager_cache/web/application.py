@@ -6,6 +6,7 @@ from fastapi.responses import UJSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from eager_cache.web.api.router import api_router
+from eager_cache.web.lifetime import shutdown, startup
 
 APP_ROOT = Path(__file__).parent.parent
 
@@ -27,6 +28,9 @@ def get_app() -> FastAPI:
         openapi_url="/api/openapi.json",
         default_response_class=UJSONResponse,
     )
+
+    app.on_event("startup")(startup(app))
+    app.on_event("shutdown")(shutdown(app))
 
     app.include_router(router=api_router, prefix="/api")
     app.mount(

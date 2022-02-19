@@ -1,18 +1,21 @@
+import json
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Tuple
+from urllib.parse import urlencode
 
-from aiocache import Cache
-from aiocache.serializers import JsonSerializer
+from aioredis import Redis
 from deepdiff import DeepDiff
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 
-DEFAULT_TTL = 3600
+from eager_cache.log_utils import fetchers_logger
+
+DEFAULT_TTL = 10
 SHADOW_KEY_PREFIX = "shadow:"
 
 
-def get_cache_key(data_type: str, **kwargs: Any) -> Tuple[str, str]:
+def get_cache_keys(data_type: str, **kwargs: Any) -> Tuple[str, str]:
     """
     Gets the cache key for the data type and kwargs.
 
@@ -23,8 +26,28 @@ def get_cache_key(data_type: str, **kwargs: Any) -> Tuple[str, str]:
     cache_key = f"{data_type}"
     for key in kwargs.keys():
         if kwargs[key] is not None:
-            cache_key = f"{cache_key}_{key}_{kwargs[key]}"
+            cache_key = f"{cache_key}:{key}:{kwargs[key]}"
     return cache_key, SHADOW_KEY_PREFIX + cache_key
+
+
+def decode_shadow_cache_key(shadow_cache_key: str):
+    """
+    Given a shadow cache key, calculates the fetch data url.
+
+    :param shadow_cache_key: The shadow cache key
+    :return: The url to refetch the data
+    """
+    cache_key = shadow_cache_key.split(":")[1:]
+    data_type = cache_key[0]
+    raw_query = cache_key[1:]
+    query = {}
+
+    # Split the query to tuples
+    # TODO: Make this better
+    for i in range(0, len(raw_query), 2):
+        query[raw_query[i]] = raw_query[i + 1]
+
+    return f"/{data_type}?{urlencode(query)}"
 
 
 class DataItem(BaseModel):
@@ -55,56 +78,72 @@ class AbstractFetcher(ABC):
     ttl: int = (
         DEFAULT_TTL  # time for cache invalidation, in seconds (default is 1 hour)
     )
-
-    cache = Cache(
-        Cache.MEMORY,
-        # url=Settings.redis_url, TODO: SET THIS TO REDIS
-        serializer=JsonSerializer(),
-        namespace="fetchers",
-    )
+    serializer = json  # override this with your preferred serializer. should support loads and dumps.
 
     @classmethod
-    async def fetch(cls, **kwargs: Any) -> DataItem:
+    async def fetch(cls, redis: Redis, **kwargs: Any) -> DataItem:
         """
         Wraps the internal _fetch logic with eager caching.
 
         :param **kwargs: Arbitrary keyword arguments.
         :return: Data item.
         """
-        cache_key, shadow_cache_key = get_cache_key(cls.data_type, **kwargs)
-        shadow = await cls.cache.get(shadow_cache_key)
+        cache_key, shadow_cache_key = get_cache_keys(cls.data_type, **kwargs)
+        fetchers_logger.info(
+            f"Got key: {cache_key}, shadow: {shadow_cache_key}",
+            extra={"cahce_key": cache_key, "shadow_cache_key": shadow_cache_key},
+        )
+        shadow = await redis.get(name=shadow_cache_key)
         if shadow is None:
-            # If we don't have a shadow key, it means that the data has expird or never been fetched.
+            # If we don't have a shadow key, it means that the data has either expired or never been fetched.
             # Either way, we need to refetch the data.
-            fetched_data = jsonable_encoder(await cls._fetch(**kwargs))
+            fetched_data = await cls._fetch(**kwargs)
+            fetchers_logger.info(
+                "Fetched new data",
+                extra={"cahce_key": cache_key, "fetched_data": fetched_data},
+            )
 
             # Check if the data has been modified since last retrieved
-            previous_cached_result = jsonable_encoder(
-                await cls.cache.get(shadow_cache_key),
-            )
+            previous_cached_result = await redis.get(name=cache_key)
+
+            # Calculate the last_modified time
             last_modified = datetime.now()
             if previous_cached_result is not None:
-                previous_data = previous_cached_result["data_item"]
+                json_previous_cached_result = cls.serializer.loads(
+                    previous_cached_result,
+                )
+                previous_data = json_previous_cached_result["data"]
                 if DeepDiff(previous_data, fetched_data) == {}:
-                    last_modified = previous_cached_result["last_modified"]
+                    fetchers_logger.info(
+                        "Data has modified since last fetch",
+                        extra={
+                            "cahce_key": cache_key,
+                        },
+                    )
+                    last_modified = json_previous_cached_result["last_modified"]
 
             data_item = DataItem(
                 last_modified=last_modified,
                 last_retrieved=datetime.now(),
                 data=fetched_data,
             )
-            json_data_item = jsonable_encoder(data_item)
 
             # Finally, set the data and the shadow in the cache
-            await cls.cache.set(
+            await redis.set(
                 cache_key,
-                json_data_item,
+                cls.serializer.dumps(jsonable_encoder(data_item)),
             )
-            await cls.cache.set(shadow_cache_key, "")
+            await redis.set(name=shadow_cache_key, value="", ex=cls.ttl)
+            fetchers_logger.info(
+                "Set cache",
+                extra={
+                    "cahce_key": cache_key,
+                },
+            )
 
-            return json_data_item
+            return data_item
 
-        return await cls.cache.get(cache_key)
+        return DataItem(**cls.serializer.loads(await redis.get(name=cache_key)))
 
     @classmethod
     @abstractmethod

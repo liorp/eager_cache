@@ -20,12 +20,6 @@ black:
   script:
   - black --check .
 
-mypy:
-  extends:
-  - .test-template
-  script:
-  - mypy .
-
 pytest:
   extends:
   - .test-template

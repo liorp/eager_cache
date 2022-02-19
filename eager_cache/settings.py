@@ -11,6 +11,7 @@ TEMP_DIR = Path(gettempdir())
 class Settings(BaseSettings):
     """Application settings."""
 
+    protocol: str = "http"
     host: str = "127.0.0.1"
     port: int = 8000
     # quantity of workers for uvicorn

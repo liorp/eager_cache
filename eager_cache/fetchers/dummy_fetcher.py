@@ -16,5 +16,5 @@ class DummyFetcher(AbstractFetcher):
     @classmethod
     async def _fetch(cls, **kwargs: Any) -> Any:
         # The internal fetch method you need to override.
-        await sleep(2)
+        await sleep(5)
         return kwargs

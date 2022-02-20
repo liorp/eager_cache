@@ -28,7 +28,7 @@ It uses redis in order to store the cached responses, and sets ttl for every cac
 
 There is a microservice that subscribes to keyspace events from the redis deployment and refetches the expired value using the fetcher.
 
-# `DataItem` structure
+# `DataItem`
 
 In addition to storing the data, `DataItem` does two important things:
 
@@ -40,11 +40,11 @@ This way, you can always know when was the data fetched, but also when was it ch
 
 # TODO
 
-🟡 Write docs
-🟡 Write tests
-🟡 Add logging
-🔴 Add microservice run configuration
-🔴 Add configuration for logging
-🔴 Re add mypy, flake8
-🔴 Refactor data fetching to background task
-🔴 Refactor updater to aioredis
+🟡 Write docs  
+🟡 Write tests  
+🟡 Add logging  
+🔴 Add microservice run configuration  
+🔴 Add configuration for logging  
+🔴 Re add mypy, flake8  
+🔴 Refactor data fetching to background task  
+🔴 Refactor updater to aioredis  

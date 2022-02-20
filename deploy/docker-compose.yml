@@ -1,4 +1,4 @@
-version: '3.7'
+version: "3.7"
 
 services:
   api:
@@ -14,10 +14,6 @@ services:
         condition: service_healthy
     environment:
       EAGER_CACHE_HOST: 0.0.0.0
-
-
-
-
 
   redis:
     image: bitnami/redis:6.2.5

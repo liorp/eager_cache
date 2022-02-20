@@ -1,4 +1,5 @@
 import json
+import random
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Tuple
@@ -12,6 +13,7 @@ from pydantic import BaseModel
 from eager_cache.log_utils import fetchers_logger
 
 DEFAULT_TTL = 10
+DEFAULT_JITTER = 5
 SHADOW_KEY_PREFIX = "shadow:"
 
 
@@ -76,8 +78,9 @@ class AbstractFetcher(ABC):
 
     data_type: str  # this will be used to cache the request
     ttl: int = (
-        DEFAULT_TTL  # time for cache invalidation, in seconds (default is 1 hour)
+        DEFAULT_TTL  # time for cache invalidation, in seconds (default is 10 seconds)
     )
+    jitter: int = DEFAULT_JITTER  # jitter time for cache invalidation, in seconds (default is 5 seconds)
     serializer = json  # override this with your preferred serializer. should support loads and dumps.
 
     @classmethod
@@ -133,7 +136,11 @@ class AbstractFetcher(ABC):
                 cache_key,
                 cls.serializer.dumps(jsonable_encoder(data_item)),
             )
-            await redis.set(name=shadow_cache_key, value="", ex=cls.ttl)
+            await redis.set(
+                name=shadow_cache_key,
+                value="",
+                ex=cls.ttl + random.randint(0, cls.jitter),
+            )
             fetchers_logger.info(
                 "Set cache",
                 extra={

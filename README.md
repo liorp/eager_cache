@@ -40,7 +40,9 @@ This way, you can always know when was the data fetched, but also when was it ch
 
 # TODO
 
--   Write docs
--   Write tests
--   Add logging
--   Re add mypy, flake8
+🟡 Write docs
+🟡 Write tests
+🟡 Add logging
+🔴 Add microservice run configuration
+🔴 Add configuration for logging
+🔴 Re add mypy, flake8

@@ -46,3 +46,4 @@ This way, you can always know when was the data fetched, but also when was it ch
 🔴 Add microservice run configuration
 🔴 Add configuration for logging
 🔴 Re add mypy, flake8
+🔴 Refactor data fetching to background task

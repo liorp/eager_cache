@@ -6,8 +6,9 @@ Powered by [FastAPI](https://fastapi.tiangolo.com).
 
 # Deploying
 
-There is a dockerfile for the server and for the microservice.
-Make sure you have a running redis deployment, set to notify keyspace events:
+There is a dockerfile, dockercompose and k8s yamls.
+
+Make sure you have a running [redis](https://redis.io) deployment, set to notify keyspace events:
 
 ```cmd
 redis-cli config set notify-keyspace-events Ex

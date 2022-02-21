@@ -1,7 +1,9 @@
+from threading import Thread
 from typing import TypedDict
 
 import requests
 from redis import Redis
+from redis.client import PubSub
 
 from eager_cache.fetchers.abstract_fetcher import decode_shadow_cache_key
 from eager_cache.settings import settings
@@ -44,6 +46,13 @@ def event_handler(event: KeyeventMessage) -> None:
         f"Sent request to {data_fetch_url}, code: {r.status_code}, response: {r.json()}",
         extra={"data_fetch_url": data_fetch_url, "code": r, "response": r.json()},
     )
+
+
+def exception_handler(ex: Exception, pubsub: PubSub, thread: Thread):
+    update_cache_logger.exception(exc_info=ex)
+    thread.stop()
+    thread.join(timeout=1.0)
+    pubsub.close()
 
 
 def main():

@@ -39,9 +39,3 @@ Second, it stores the time the data itself was _changed_ (this is `last_modified
 This way, you can always know when was the data fetched, but also when was it changed (the comparison is done using [deepdiff](https://pypi.org/project/deepdiff/))
 
 ![eager_cache_uml](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/liorp/eager_cache/master/uml/eager_cache.iuml)
-
-# TODO
-
-🟡 Write docs
-🟡 Write tests
-🔴 Refactor data fetching to background task

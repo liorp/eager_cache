@@ -1,0 +1,36 @@
+@startuml
+title eager_cache
+scale max 1000*1000
+skinparam Padding 10
+
+cloud {
+  [Data Source]
+}
+
+cloud {
+  [Consumer]
+}
+
+cloud {
+  [eager_cache]
+}
+
+cloud {
+  [updater]
+}
+
+database "Redis" {
+  folder "Cache" {
+    [Data Source] as [Data Source Cache]
+  }
+}
+
+[Consumer] --> [eager_cache]
+
+[eager_cache] --> [Data Source]
+[eager_cache] --> [Data Source Cache]
+
+[Data Source Cache] .up.> [updater] : psubscribe to\nkeyspace events
+[updater] .down.> [eager_cache] : update on keyspace events
+
+@enduml

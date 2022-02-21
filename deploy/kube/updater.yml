@@ -1,0 +1,37 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: eager-cache
+  name: updater
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: updater
+  template:
+    metadata:
+      labels:
+        app: updater
+    spec:
+      containers:
+      - name: app
+        image: eager_cache:latest
+        resources:
+          limits:
+            memory: "300Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: eager-cache
+  name: updater-service
+spec:
+  selector:
+    app: updater
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: api-port
+    name: api-port

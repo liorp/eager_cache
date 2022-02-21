@@ -19,7 +19,7 @@ async def api_data(
     """
     Route for fetching api data.
 
-    :param data_type: Data type to fetch
+    :param data_type: Data type to fetch.
     :param request: The request object, used for getting query params.
     :param redis: The redis object used to manage cache.
 

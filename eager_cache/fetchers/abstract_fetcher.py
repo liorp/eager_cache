@@ -12,14 +12,18 @@ from pydantic import BaseModel
 
 from eager_cache.log_utils import fetchers_logger
 
+# Default values for caching
+# Note: these values can put a lot of stress on the server, since they are low. Change them as you profile your usage.
 DEFAULT_TTL = 10
 DEFAULT_JITTER = 5
-SHADOW_KEY_PREFIX = "shadow:"
+SEPARATOR = ":"
+SHADOW_KEY_PREFIX = "shadow"
 
 
 def get_cache_keys(data_type: str, **kwargs: Any) -> Tuple[str, str]:
     """
     Gets the cache key for the data type and kwargs.
+    The formula is quite simple: it concatenates the data_type with the list of kwargs
 
     :param data_type: Data type for cache key
     :param kwargs: Kwargs for cache key
@@ -28,24 +32,26 @@ def get_cache_keys(data_type: str, **kwargs: Any) -> Tuple[str, str]:
     cache_key = f"{data_type}"
     for key in kwargs.keys():
         if kwargs[key] is not None:
-            cache_key = f"{cache_key}:{key}:{kwargs[key]}"
-    return cache_key, SHADOW_KEY_PREFIX + cache_key
+            cache_key = (
+                f"{cache_key}" + SEPARATOR + f"{key}" + SEPARATOR + f"{kwargs[key]}"
+            )
+    return cache_key, SHADOW_KEY_PREFIX + SEPARATOR + cache_key
 
 
 def decode_shadow_cache_key(shadow_cache_key: str):
     """
     Given a shadow cache key, calculates the fetch data url.
+    This is useful for fetching the data if it has gone stale (e.g. the shadow key has expired)
 
     :param shadow_cache_key: The shadow cache key
     :return: The url to refetch the data
     """
-    cache_key = shadow_cache_key.split(":")[1:]
+    cache_key = shadow_cache_key.split(SEPARATOR)[1:]
     data_type = cache_key[0]
     raw_query = cache_key[1:]
     query = {}
 
     # Split the query to tuples
-    # TODO: Make this better
     for i in range(0, len(raw_query), 2):
         query[raw_query[i]] = raw_query[i + 1]
 
@@ -87,6 +93,9 @@ class AbstractFetcher(ABC):
     async def fetch(cls, redis: Redis, **kwargs: Any) -> DataItem:
         """
         Wraps the internal _fetch logic with eager caching.
+        We use a [shadow key](https://stackoverflow.com/a/28647773/938227) for each record, which indicates whether the cached data is valid.
+        If the shadow key doesn't exist, we fetch the data and return it.
+        If the shadow key exists, we just return the cached data.
 
         :param **kwargs: Arbitrary keyword arguments.
         :return: Data item.
@@ -130,10 +139,8 @@ class AbstractFetcher(ABC):
                 data_item,
             )
             fetchers_logger.info(
-                "Set cache",
-                extra={
-                    "cahce_key": cache_key,
-                },
+                "Cached data",
+                extra={"cahce_key": cache_key, "data": fetched_data},
             )
 
             return data_item
@@ -159,21 +166,39 @@ class AbstractFetcher(ABC):
         )
 
     @classmethod
-    def calculate_last_modified(cls, cache_key, fetched_data, previous_cached_result):
+    def calculate_last_modified(
+        cls,
+        cache_key: str,
+        fetched_data: Any,
+        previous_cached_result: Any,
+    ) -> datetime:
+        """
+        Compares `fetched_data` to `previous_cached_result["data"]` and returns the modification date.
+
+        :param cache_key: The cache key of the data.
+        :param fetched_data: Freshly fetched data.
+        :param previous_cached_result: The previous cached result from redis.
+        :return: When was the data modified.
+        :return type: datetime
+        """
         last_modified = datetime.now()
         if previous_cached_result is not None:
+            # If we have data in the cache, load and compare it to the freshly fetched data
             json_previous_cached_result = cls.serializer.loads(
                 previous_cached_result,
             )
+            last_modified = datetime.fromisoformat(
+                json_previous_cached_result["last_modified"],
+            )
             previous_data = json_previous_cached_result["data"]
-            if DeepDiff(previous_data, fetched_data) == {}:
+            if DeepDiff(previous_data, fetched_data) != {}:
                 fetchers_logger.info(
-                    "Data has modified since last fetch",
+                    "Data has been modified since last fetch",
                     extra={
                         "cahce_key": cache_key,
                     },
                 )
-                last_modified = json_previous_cached_result["last_modified"]
+                last_modified = datetime.now()
         return last_modified
 
     @classmethod

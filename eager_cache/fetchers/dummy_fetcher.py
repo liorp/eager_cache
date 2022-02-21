@@ -8,7 +8,7 @@ class DummyFetcher(AbstractFetcher):
     """
     A dummy fetcher class.
 
-    Does nothing but sleep, in order to demonstrate the caching.
+    Does nothing but sleep, in order to demonstrate caching.
     """
 
     data_type = "dummy"

@@ -25,6 +25,7 @@ async-generator = "^1.10"
 deepdiff = "^5.7.0"
 msgpack = "^1.0.3"
 requests = "^2.27.1"
+freezegun = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.0"

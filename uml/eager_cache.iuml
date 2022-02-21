@@ -3,8 +3,20 @@ title eager_cache
 scale max 1000*1000
 skinparam Padding 10
 
-cloud {
-  [Data Source]
+cloud "A" {
+  [Data Source A]
+  database {
+    [Resource A]
+    [Resource B]
+  }
+}
+
+cloud "B" {
+  [Data Source B]
+  database {
+    [Resource A] as [Resource BA]
+    [Resource B] as [Resource BB]
+  }
 }
 
 cloud {
@@ -21,16 +33,18 @@ cloud {
 
 database "Redis" {
   folder "Cache" {
-    [Data Source] as [Data Source Cache]
+    [A] as [A Cache]
+    [B] as [B Cache]
   }
 }
 
 [Consumer] --> [eager_cache]
 
-[eager_cache] --> [Data Source]
-[eager_cache] --> [Data Source Cache]
+[eager_cache] --> [Data Source A]
+[eager_cache] --> [Data Source B]
+[eager_cache] --> [A Cache]
 
-[Data Source Cache] .up.> [updater] : psubscribe to\nkeyspace events
-[updater] .down.> [eager_cache] : update on keyspace events
+[A Cache] .up.> [updater] : psubscribe to\nkeyspace events
+[updater] .left.> [eager_cache] : update on keyspace events
 
 @enduml

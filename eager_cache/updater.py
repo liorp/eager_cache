@@ -28,7 +28,7 @@ def event_handler(event: KeyeventMessage) -> None:
     """
     Receives the expire keyevent from redis, and issues a request to refetch the corresponding data from the server.
 
-    :param event: The keyspace event
+    :param event: The keyspace event.
     """
     update_cache_logger.info(f"Received event {event}", extra={"event": event})
     key = event["data"].decode()
@@ -48,7 +48,7 @@ def event_handler(event: KeyeventMessage) -> None:
     )
 
 
-def exception_handler(ex: Exception, pubsub: PubSub, thread: Thread):
+def exception_handler(ex: Exception, pubsub: PubSub, thread: Thread) -> None:
     update_cache_logger.exception(exc_info=ex)
     thread.stop()
     thread.join(timeout=1.0)

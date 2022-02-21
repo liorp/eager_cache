@@ -110,20 +110,11 @@ class AbstractFetcher(ABC):
             previous_cached_result = await redis.get(name=cache_key)
 
             # Calculate the last_modified time
-            last_modified = datetime.now()
-            if previous_cached_result is not None:
-                json_previous_cached_result = cls.serializer.loads(
-                    previous_cached_result,
-                )
-                previous_data = json_previous_cached_result["data"]
-                if DeepDiff(previous_data, fetched_data) == {}:
-                    fetchers_logger.info(
-                        "Data has modified since last fetch",
-                        extra={
-                            "cahce_key": cache_key,
-                        },
-                    )
-                    last_modified = json_previous_cached_result["last_modified"]
+            last_modified = cls.calculate_last_modified(
+                cache_key,
+                fetched_data,
+                previous_cached_result,
+            )
 
             data_item = DataItem(
                 last_modified=last_modified,
@@ -132,14 +123,11 @@ class AbstractFetcher(ABC):
             )
 
             # Finally, set the data and the shadow in the cache
-            await redis.set(
+            await cls.set_cache_data_and_shadow(
+                redis,
                 cache_key,
-                cls.serializer.dumps(jsonable_encoder(data_item)),
-            )
-            await redis.set(
-                name=shadow_cache_key,
-                value="",
-                ex=cls.ttl + random.randint(0, cls.jitter),
+                shadow_cache_key,
+                data_item,
             )
             fetchers_logger.info(
                 "Set cache",
@@ -151,6 +139,42 @@ class AbstractFetcher(ABC):
             return data_item
 
         return DataItem(**cls.serializer.loads(await redis.get(name=cache_key)))
+
+    @classmethod
+    async def set_cache_data_and_shadow(
+        cls,
+        redis,
+        cache_key,
+        shadow_cache_key,
+        data_item,
+    ):
+        await redis.set(
+            cache_key,
+            cls.serializer.dumps(jsonable_encoder(data_item)),
+        )
+        await redis.set(
+            name=shadow_cache_key,
+            value="",
+            ex=cls.ttl + random.randint(0, cls.jitter),
+        )
+
+    @classmethod
+    def calculate_last_modified(cls, cache_key, fetched_data, previous_cached_result):
+        last_modified = datetime.now()
+        if previous_cached_result is not None:
+            json_previous_cached_result = cls.serializer.loads(
+                previous_cached_result,
+            )
+            previous_data = json_previous_cached_result["data"]
+            if DeepDiff(previous_data, fetched_data) == {}:
+                fetchers_logger.info(
+                    "Data has modified since last fetch",
+                    extra={
+                        "cahce_key": cache_key,
+                    },
+                )
+                last_modified = json_previous_cached_result["last_modified"]
+        return last_modified
 
     @classmethod
     @abstractmethod

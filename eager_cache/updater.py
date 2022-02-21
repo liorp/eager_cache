@@ -27,8 +27,6 @@ def event_handler(event: KeyeventMessage) -> None:
     Receives the expire keyevent from redis, and issues a request to refetch the corresponding data from the server.
 
     :param event: The keyspace event
-
-    TODO: Make this a watcher for key expire.
     """
     update_cache_logger.info(f"Received event {event}", extra={"event": event})
     key = event["data"].decode()
